@@ -29,56 +29,105 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-red-600 tracking-tight">
-            LIFE<span className="text-gray-900">BRIDGE</span>
-          </Link>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-8 space-y-4 shadow-sm">
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={form.password}
-              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="••••••••"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Don't have an account?{" "}
-          <Link href="/register" className="text-red-600 font-medium hover:underline">
-            Register
-          </Link>
+    <div
+      className="min-h-screen grid lg:grid-cols-2"
+      style={{ background: "var(--surface-1)" }}
+    >
+      {/* Left panel — branding */}
+      <div
+        className="hidden lg:flex flex-col justify-between p-12"
+        style={{ background: "var(--red-600)" }}
+      >
+        <span className="text-white font-bold text-lg tracking-tight">
+          LIFE<span className="opacity-80">BRIDGE</span>
+        </span>
+        <blockquote className="text-white">
+          <p className="text-2xl font-semibold leading-snug mb-4">
+            &ldquo;Every second matters.<br />Every life connects us.&rdquo;
+          </p>
+          <footer className="text-sm opacity-70">
+            Emergency coordination · Health records · Community heroes
+          </footer>
+        </blockquote>
+        <p className="text-xs text-white/50">
+          Hackathon prototype · Not an emergency service
         </p>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex flex-col items-center justify-center px-6 py-16">
+        <div className="w-full max-w-sm">
+          <Link
+            href="/"
+            className="inline-block mb-8 font-bold text-base tracking-tight"
+          >
+            <span style={{ color: "var(--red-600)" }}>LIFE</span>
+            <span style={{ color: "var(--text-primary)" }}>BRIDGE</span>
+          </Link>
+
+          <h1 className="t-title mb-1" style={{ color: "var(--text-primary)" }}>Sign in</h1>
+          <p className="text-sm mb-8" style={{ color: "var(--text-muted)" }}>
+            Enter your credentials to continue
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div
+                className="text-sm px-3 py-2.5 rounded-lg"
+                style={{ background: "var(--red-50)", color: "var(--red-700)", border: "1px solid var(--red-100)" }}
+                role="alert"
+              >
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="field-label" htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                className="field-input"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={form.password}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                className="field-input"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary btn-lg w-full mt-2"
+            >
+              {loading
+                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in…</>
+                : "Sign in"
+              }
+            </button>
+          </form>
+
+          <p className="text-sm mt-6 text-center" style={{ color: "var(--text-muted)" }}>
+            No account?{" "}
+            <Link href="/register" className="font-medium" style={{ color: "var(--red-600)" }}>
+              Register here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

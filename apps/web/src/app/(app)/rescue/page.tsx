@@ -4,6 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
+const statusBadge: Record<string, string> = {
+  REPORTED: "badge-reported", ACKNOWLEDGED: "badge-ack", DISPATCHED: "badge-dispatch",
+  ARRIVED: "badge-arrived", COMPLETED: "badge-done", CANCELLED: "badge-cancel",
+};
+
 export default async function RescuePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
@@ -11,106 +16,143 @@ export default async function RescuePage() {
   const role = (session.user as { role?: string }).role ?? "";
   const userId = (session.user as { id?: string }).id ?? "";
 
-  // For the ops dashboard (hospital/ambulance/admin) fetch recent incidents
   const incidents = await prisma.incident.findMany({
     orderBy: { createdAt: "desc" },
-    take: 20,
-    include: {
-      reporter: { select: { name: true } },
-      responses: true,
-    },
+    take: 30,
+    include: { reporter: { select: { name: true } }, responses: true },
   });
 
-  const statusColors: Record<string, string> = {
-    REPORTED:     "bg-yellow-100 text-yellow-700",
-    ACKNOWLEDGED: "bg-blue-100 text-blue-700",
-    DISPATCHED:   "bg-purple-100 text-purple-700",
-    ARRIVED:      "bg-green-100 text-green-700",
-    COMPLETED:    "bg-gray-100 text-gray-600",
-    CANCELLED:    "bg-red-100 text-red-700",
-  };
+  const visible = role === "PATIENT"
+    ? incidents.filter(i => i.reporterId === userId)
+    : incidents;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">🚨 LIFEBridge Rescue</h1>
-        <Link
-          href="/rescue/report"
-          className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
-        >
-          + Report Incident
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <div>
+          <h1 className="t-title mb-0.5" style={{ color: "var(--text-primary)" }}>Rescue</h1>
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            {role === "PATIENT" ? "Your incident reports" : "Operations dashboard"}
+          </p>
+        </div>
+        <Link href="/rescue/report" className="btn btn-primary shrink-0">
+          Report incident
         </Link>
       </div>
 
-      {/* Emergency banner */}
-      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 mb-6">
-        🆘 In an emergency call <strong>112</strong> immediately. Do not wait for LIFEBridge.
+      {/* 112 banner */}
+      <div
+        className="flex items-center gap-3 rounded-xl px-4 py-3 mb-6 text-sm"
+        style={{ background: "var(--red-600)", color: "#fff" }}
+        role="alert"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+          <path d="M8 1L1 14h14L8 1Z" stroke="white" strokeWidth="1.4" strokeLinejoin="round"/>
+          <path d="M8 6v3.5M8 11.5v.5" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
+        </svg>
+        <span>
+          <strong>Emergency?</strong> Call <strong>112</strong> first — do not wait for LIFEBridge.
+        </span>
       </div>
 
-      {/* Ops dashboard */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">
-          {role === "PATIENT" ? "My Reported Incidents" : "Incident Operations Dashboard"}
-        </h2>
-        <p className="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg mb-4 inline-block">
-          ⚠️ Simulated demo data — not real dispatches or real hospital capacity
-        </p>
+      {/* Demo notice */}
+      <div
+        className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-5 text-xs font-medium"
+        style={{ background: "#fef3c7", color: "#92400e" }}
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M6 1L1 10.5h10L6 1Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+        </svg>
+        Simulated demo — not real dispatches or real hospital capacity
+      </div>
 
-        {incidents.length === 0 ? (
-          <p className="text-sm text-gray-400">No incidents reported yet.</p>
+      {/* Incident list */}
+      <div className="surface-raised overflow-hidden">
+        {visible.length === 0 ? (
+          <div className="empty-state">
+            No incidents yet.{" "}
+            <Link href="/rescue/report" style={{ color: "var(--red-600)" }}>
+              Report the first one.
+            </Link>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {incidents
-              .filter(i => role === "PATIENT" ? i.reporterId === userId : true)
-              .map(i => {
-                const ai = i.aiExtracted as Record<string, string> | null;
-                return (
-                  <div key={i.id} className="border border-gray-100 rounded-xl px-4 py-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{i.description}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Reported by {i.reporter.name} ·{" "}
-                          {new Date(i.createdAt).toLocaleString("en-IN")}
-                        </p>
-                        {ai && (
-                          <div className="mt-2 flex gap-2 flex-wrap">
-                            {ai.incident_type && (
-                              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{ai.incident_type}</span>
-                            )}
-                            {ai.severity_indicator && (
-                              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-                                Severity: {ai.severity_indicator}
-                              </span>
-                            )}
-                            {ai.location_hint && (
-                              <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
-                                📍 {ai.location_hint}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${statusColors[i.status]}`}>
-                        {i.status}
-                      </span>
+          <div>
+            {/* Table header — desktop */}
+            <div
+              className="hidden sm:grid grid-cols-[1fr_140px_120px_100px] gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wider"
+              style={{ background: "var(--surface-2)", color: "var(--text-muted)", borderBottom: "1px solid var(--border-soft)" }}
+            >
+              <span>Incident</span>
+              <span>Reported by</span>
+              <span>Time</span>
+              <span>Status</span>
+            </div>
+
+            {visible.map((i, idx) => {
+              const ai = i.aiExtracted as Record<string, string> | null;
+              return (
+                <div
+                  key={i.id}
+                  className="px-5 py-4"
+                  style={{ borderBottom: idx < visible.length - 1 ? "1px solid var(--border-soft)" : "none" }}
+                >
+                  <div className="sm:grid sm:grid-cols-[1fr_140px_120px_100px] sm:gap-4 sm:items-start">
+                    {/* Description + AI chips */}
+                    <div className="min-w-0 mb-2 sm:mb-0">
+                      <p className="text-sm font-medium mb-1.5 leading-snug" style={{ color: "var(--text-primary)" }}>
+                        {i.description}
+                      </p>
+                      {ai && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {ai.incident_type && (
+                            <span className="badge badge-done">{ai.incident_type.replace(/_/g, " ")}</span>
+                          )}
+                          {ai.severity_indicator && ai.severity_indicator !== "unknown" && (
+                            <span className={`badge ${ai.severity_indicator === "high" ? "badge-cancel" : ai.severity_indicator === "medium" ? "badge-reported" : "badge-done"}`}>
+                              {ai.severity_indicator} severity
+                            </span>
+                          )}
+                          {ai.location_hint && ai.location_hint !== "unknown" && (
+                            <span className="badge badge-ack">{ai.location_hint}</span>
+                          )}
+                          {ai.unconscious_reported === "true" && (
+                            <span className="badge badge-cancel">unconscious reported</span>
+                          )}
+                          <span className="badge" style={{ background: "#e0f2fe", color: "#0369a1" }}>
+                            IBM AI · assistive only
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-3 flex gap-2">
-                      {(role === "HOSPITAL" || role === "AMBULANCE" || role === "ADMIN") &&
-                        i.status === "REPORTED" && (
-                          <form action={`/api/rescue/incidents/${i.id}/acknowledge`} method="POST">
-                            <button
-                              type="submit"
-                              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
-                            >
-                              Acknowledge (simulated)
-                            </button>
-                          </form>
-                        )}
+
+                    {/* Reporter */}
+                    <p className="text-sm mb-1 sm:mb-0" style={{ color: "var(--text-secondary)" }}>
+                      {i.reporter.name}
+                    </p>
+
+                    {/* Time */}
+                    <p className="text-xs mb-1 sm:mb-0" style={{ color: "var(--text-muted)" }}>
+                      {new Date(i.createdAt).toLocaleString("en-IN", {
+                        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+                      })}
+                    </p>
+
+                    {/* Status + action */}
+                    <div className="flex flex-col gap-2 items-start">
+                      <span className={`badge ${statusBadge[i.status] ?? "badge-done"}`}>{i.status}</span>
+                      {["HOSPITAL", "AMBULANCE", "ADMIN"].includes(role) && i.status === "REPORTED" && (
+                        <form action={`/api/rescue/incidents/${i.id}/acknowledge`} method="POST">
+                          <button type="submit" className="btn btn-ghost btn-sm" style={{ fontSize: "0.75rem", height: "26px" }}>
+                            Acknowledge
+                          </button>
+                        </form>
+                      )}
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

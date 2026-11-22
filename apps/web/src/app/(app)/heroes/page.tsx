@@ -21,70 +21,94 @@ export default async function HeroesPage() {
       },
     });
 
+    const verified   = volunteer?.heroActions.filter(a => a.verified).length ?? 0;
+    const pending    = volunteer?.heroActions.filter(a => !a.verified).length ?? 0;
+    const totalPts   = volunteer?.points ?? 0;
+
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">🌟 LIFEBridge Heroes</h1>
+        <h1 className="t-title mb-6" style={{ color: "var(--text-primary)" }}>Heroes</h1>
 
-        {/* Points banner */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-6 mb-6">
-          <p className="text-sm text-yellow-700 font-medium mb-1">Total Recognition Points</p>
-          <p className="text-4xl font-bold text-yellow-600">{volunteer?.points ?? 0}</p>
-          <p className="text-xs text-yellow-600 mt-1">
-            Points are awarded after admin verification of your contributions.
-          </p>
+        {/* Stats strip */}
+        <div
+          className="grid sm:grid-cols-3 gap-px mb-6 overflow-hidden rounded-xl"
+          style={{ border: "1px solid var(--border-soft)", background: "var(--border-soft)" }}
+        >
+          <div className="px-5 py-5" style={{ background: "var(--surface-0)" }}>
+            <p className="t-caption mb-1">Recognition Points</p>
+            <p className="text-3xl font-bold" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+              {totalPts}
+            </p>
+          </div>
+          <div className="px-5 py-5" style={{ background: "var(--surface-0)" }}>
+            <p className="t-caption mb-1">Verified contributions</p>
+            <p className="text-3xl font-bold" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+              {verified}
+            </p>
+          </div>
+          <div className="px-5 py-5" style={{ background: "var(--surface-0)" }}>
+            <p className="t-caption mb-1">Pending verification</p>
+            <p className="text-3xl font-bold" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+              {pending}
+            </p>
+          </div>
         </div>
 
-        {/* Certifications */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-          <h2 className="font-semibold text-gray-900 mb-2">First-Aid Certification</h2>
-          {volunteer?.certified ? (
-            <span className="text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full font-medium">
-              ✓ Certified
-            </span>
-          ) : (
-            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-              Not yet certified
-            </span>
-          )}
+        {/* Certification */}
+        <div className="surface p-5 mb-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--text-primary)" }}>First-Aid Certification</p>
+            <p className="t-caption">Required for certain verified contributions</p>
+          </div>
+          <span className={`badge ${volunteer?.certified ? "badge-verified" : "badge-done"}`}>
+            {volunteer?.certified ? "Certified" : "Not certified"}
+          </span>
         </div>
 
         {/* Contribution history */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Contribution History</h2>
-          {volunteer?.heroActions.length === 0 ? (
-            <p className="text-sm text-gray-400">No recorded contributions yet.</p>
+        <div className="surface-raised overflow-hidden">
+          <div
+            className="px-5 py-3"
+            style={{ borderBottom: "1px solid var(--border-soft)", background: "var(--surface-2)" }}
+          >
+            <h2 className="t-heading" style={{ color: "var(--text-primary)" }}>Contribution History</h2>
+          </div>
+          {!volunteer?.heroActions.length ? (
+            <div className="empty-state">No recorded contributions yet.</div>
           ) : (
-            <div className="space-y-3">
-              {volunteer?.heroActions.map(a => (
-                <div key={a.id} className="border border-gray-100 rounded-xl px-4 py-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800 truncate">{a.incident.description}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(a.createdAt).toLocaleDateString("en-IN")}
-                      </p>
-                      {a.description && (
-                        <p className="text-gray-600 mt-1">{a.description}</p>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        a.verified ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                      }`}>
-                        {a.verified ? "Verified" : "Pending verification"}
-                      </span>
-                      {a.verified && a.pointsAwarded > 0 && (
-                        <span className="text-xs text-yellow-600 font-semibold">
-                          +{a.pointsAwarded} pts
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            volunteer.heroActions.map((a, idx) => (
+              <div
+                key={a.id}
+                className="px-5 py-4 flex items-start justify-between gap-4"
+                style={{ borderBottom: idx < volunteer.heroActions.length - 1 ? "1px solid var(--border-soft)" : "none" }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-snug mb-0.5" style={{ color: "var(--text-primary)" }}>
+                    {a.incident.description}
+                  </p>
+                  <p className="t-caption">{new Date(a.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                  {a.description && (
+                    <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>{a.description}</p>
+                  )}
                 </div>
-              ))}
-            </div>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <span className={`badge ${a.verified ? "badge-verified" : "badge-pending"}`}>
+                    {a.verified ? "Verified" : "Pending"}
+                  </span>
+                  {a.verified && a.pointsAwarded > 0 && (
+                    <span className="text-xs font-semibold" style={{ color: "#92400e" }}>
+                      +{a.pointsAwarded} pts
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
           )}
         </div>
+
+        <p className="mt-5 t-caption px-1">
+          Points are awarded only after admin verification. Never act beyond your first-aid training level.
+        </p>
       </div>
     );
   }
@@ -101,34 +125,55 @@ export default async function HeroesPage() {
 
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">🌟 Heroes Admin Panel</h1>
-        <p className="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg mb-4 inline-block">
-          ⚠️ Demo only — verify contributions and award points
-        </p>
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Pending Verifications</h2>
-          {pendingActions.length === 0 ? (
-            <p className="text-sm text-gray-400">No pending verifications.</p>
+        <div className="flex items-center gap-3 mb-6">
+          <h1 className="t-title" style={{ color: "var(--text-primary)" }}>Heroes Admin</h1>
+          <span
+            className="badge"
+            style={{ background: "#fef3c7", color: "#92400e" }}
+          >
+            {pendingActions.length} pending
+          </span>
+        </div>
+
+        <div
+          className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-5 text-xs font-medium"
+          style={{ background: "#fef3c7", color: "#92400e" }}
+        >
+          Demo only — verify contributions and award points
+        </div>
+
+        <div className="surface-raised overflow-hidden">
+          <div
+            className="px-5 py-3"
+            style={{ borderBottom: "1px solid var(--border-soft)", background: "var(--surface-2)" }}
+          >
+            <h2 className="t-heading" style={{ color: "var(--text-primary)" }}>Pending Verifications</h2>
+          </div>
+          {!pendingActions.length ? (
+            <div className="empty-state">No pending verifications.</div>
           ) : (
-            <div className="space-y-3">
-              {pendingActions.map(a => (
-                <div key={a.id} className="border border-gray-100 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-medium text-gray-800">{a.volunteer.user.name}</p>
-                    <p className="text-xs text-gray-500">{a.incident.description}</p>
-                    {a.description && <p className="text-gray-600 mt-1">{a.description}</p>}
-                  </div>
-                  <form action={`/api/heroes/actions/${a.id}/verify`} method="POST">
-                    <button
-                      type="submit"
-                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
-                    >
-                      Verify &amp; Award 10 pts
-                    </button>
-                  </form>
+            pendingActions.map((a, idx) => (
+              <div
+                key={a.id}
+                className="px-5 py-4 flex items-start justify-between gap-4"
+                style={{ borderBottom: idx < pendingActions.length - 1 ? "1px solid var(--border-soft)" : "none" }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--text-primary)" }}>
+                    {a.volunteer.user.name}
+                  </p>
+                  <p className="text-sm mb-1" style={{ color: "var(--text-secondary)" }}>{a.incident.description}</p>
+                  {a.description && (
+                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>{a.description}</p>
+                  )}
                 </div>
-              ))}
-            </div>
+                <form action={`/api/heroes/actions/${a.id}/verify`} method="POST" className="shrink-0">
+                  <button type="submit" className="btn btn-ghost btn-sm" style={{ color: "#166534", borderColor: "#bbf7d0" }}>
+                    Verify &amp; +10 pts
+                  </button>
+                </form>
+              </div>
+            ))
           )}
         </div>
       </div>
@@ -137,8 +182,8 @@ export default async function HeroesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">🌟 LIFEBridge Heroes</h1>
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 text-sm text-gray-500">
+      <h1 className="t-title mb-4" style={{ color: "var(--text-primary)" }}>Heroes</h1>
+      <div className="surface p-6 text-sm" style={{ color: "var(--text-muted)" }}>
         The Heroes module is for registered volunteers and administrators.
       </div>
     </div>
