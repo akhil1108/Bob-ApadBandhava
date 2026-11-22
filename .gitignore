@@ -49,3 +49,8 @@ apps/mobile/ios/
 apps/mobile/.expo/
 !.env.example
 !apps/**/.env.example
+
+# node_modules in all workspaces
+apps/web/node_modules/
+apps/mobile/node_modules/
+packages/shared/node_modules/

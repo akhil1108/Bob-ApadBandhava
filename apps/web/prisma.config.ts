@@ -1,7 +1,4 @@
-import { definePrismaConfig } from "prisma/config";
+import { config } from "dotenv";
 
-export default definePrismaConfig({
-  skills: {
-    agents: ["claude", "cursor", "agents", "devin"],
-  },
-});
+// Load .env.local for Prisma CLI (Next.js doesn't expose it automatically)
+config({ path: ".env.local" });
