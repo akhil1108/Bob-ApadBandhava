@@ -2,14 +2,16 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { LogHeroActionForm } from "@/components/LogHeroActionForm";
 
 export default async function HeroesPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const role = (session.user as { role?: string }).role ?? "";
+  const role   = (session.user as { role?: string }).role ?? "";
   const userId = (session.user as { id?: string }).id ?? "";
 
+  // ── VOLUNTEER view ────────────────────────────────────────────────────────
   if (role === "VOLUNTEER") {
     const volunteer = await prisma.volunteerProfile.findUnique({
       where: { userId },
@@ -21,37 +23,39 @@ export default async function HeroesPage() {
       },
     });
 
-    const verified   = volunteer?.heroActions.filter(a => a.verified).length ?? 0;
-    const pending    = volunteer?.heroActions.filter(a => !a.verified).length ?? 0;
-    const totalPts   = volunteer?.points ?? 0;
+    // Fetch all incidents for the log form
+    const allIncidents = await prisma.incident.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, description: true, status: true },
+    });
+
+    const verified = volunteer?.heroActions.filter(a => a.verified).length ?? 0;
+    const pending  = volunteer?.heroActions.filter(a => !a.verified).length ?? 0;
+    const totalPts = volunteer?.points ?? 0;
 
     return (
       <div>
-        <h1 className="t-title mb-6" style={{ color: "var(--text-primary)" }}>Heroes</h1>
+        <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+          <h1 className="t-title" style={{ color: "var(--text-primary)" }}>Heroes</h1>
+          <LogHeroActionForm incidents={allIncidents} />
+        </div>
 
         {/* Stats strip */}
         <div
           className="grid sm:grid-cols-3 gap-px mb-6 overflow-hidden rounded-xl"
           style={{ border: "1px solid var(--border-soft)", background: "var(--border-soft)" }}
         >
-          <div className="px-5 py-5" style={{ background: "var(--surface-0)" }}>
-            <p className="t-caption mb-1">Recognition Points</p>
-            <p className="text-3xl font-bold" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-              {totalPts}
-            </p>
-          </div>
-          <div className="px-5 py-5" style={{ background: "var(--surface-0)" }}>
-            <p className="t-caption mb-1">Verified contributions</p>
-            <p className="text-3xl font-bold" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-              {verified}
-            </p>
-          </div>
-          <div className="px-5 py-5" style={{ background: "var(--surface-0)" }}>
-            <p className="t-caption mb-1">Pending verification</p>
-            <p className="text-3xl font-bold" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-              {pending}
-            </p>
-          </div>
+          {[
+            { label: "Recognition Points",   value: totalPts },
+            { label: "Verified contributions", value: verified },
+            { label: "Pending verification",   value: pending },
+          ].map(s => (
+            <div key={s.label} className="px-5 py-5" style={{ background: "var(--surface-0)" }}>
+              <p className="t-caption mb-1">{s.label}</p>
+              <p className="text-3xl font-bold" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>{s.value}</p>
+            </div>
+          ))}
         </div>
 
         {/* Certification */}
@@ -67,10 +71,7 @@ export default async function HeroesPage() {
 
         {/* Contribution history */}
         <div className="surface-raised overflow-hidden">
-          <div
-            className="px-5 py-3"
-            style={{ borderBottom: "1px solid var(--border-soft)", background: "var(--surface-2)" }}
-          >
+          <div className="px-5 py-3" style={{ borderBottom: "1px solid var(--border-soft)", background: "var(--surface-2)" }}>
             <h2 className="t-heading" style={{ color: "var(--text-primary)" }}>Contribution History</h2>
           </div>
           {!volunteer?.heroActions.length ? (
@@ -87,18 +88,14 @@ export default async function HeroesPage() {
                     {a.incident.description}
                   </p>
                   <p className="t-caption">{new Date(a.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
-                  {a.description && (
-                    <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>{a.description}</p>
-                  )}
+                  {a.description && <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>{a.description}</p>}
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <span className={`badge ${a.verified ? "badge-verified" : "badge-pending"}`}>
                     {a.verified ? "Verified" : "Pending"}
                   </span>
                   {a.verified && a.pointsAwarded > 0 && (
-                    <span className="text-xs font-semibold" style={{ color: "#92400e" }}>
-                      +{a.pointsAwarded} pts
-                    </span>
+                    <span className="text-xs font-semibold" style={{ color: "#92400e" }}>+{a.pointsAwarded} pts</span>
                   )}
                 </div>
               </div>
@@ -113,12 +110,13 @@ export default async function HeroesPage() {
     );
   }
 
+  // ── ADMIN view ────────────────────────────────────────────────────────────
   if (role === "ADMIN") {
     const pendingActions = await prisma.heroAction.findMany({
       where: { verified: false },
       include: {
         volunteer: { include: { user: { select: { name: true } } } },
-        incident: { select: { description: true } },
+        incident:  { select: { description: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -127,10 +125,7 @@ export default async function HeroesPage() {
       <div>
         <div className="flex items-center gap-3 mb-6">
           <h1 className="t-title" style={{ color: "var(--text-primary)" }}>Heroes Admin</h1>
-          <span
-            className="badge"
-            style={{ background: "#fef3c7", color: "#92400e" }}
-          >
+          <span className="badge" style={{ background: "#fef3c7", color: "#92400e" }}>
             {pendingActions.length} pending
           </span>
         </div>
@@ -143,10 +138,7 @@ export default async function HeroesPage() {
         </div>
 
         <div className="surface-raised overflow-hidden">
-          <div
-            className="px-5 py-3"
-            style={{ borderBottom: "1px solid var(--border-soft)", background: "var(--surface-2)" }}
-          >
+          <div className="px-5 py-3" style={{ borderBottom: "1px solid var(--border-soft)", background: "var(--surface-2)" }}>
             <h2 className="t-heading" style={{ color: "var(--text-primary)" }}>Pending Verifications</h2>
           </div>
           {!pendingActions.length ? (
@@ -159,13 +151,9 @@ export default async function HeroesPage() {
                 style={{ borderBottom: idx < pendingActions.length - 1 ? "1px solid var(--border-soft)" : "none" }}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--text-primary)" }}>
-                    {a.volunteer.user.name}
-                  </p>
+                  <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--text-primary)" }}>{a.volunteer.user.name}</p>
                   <p className="text-sm mb-1" style={{ color: "var(--text-secondary)" }}>{a.incident.description}</p>
-                  {a.description && (
-                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>{a.description}</p>
-                  )}
+                  {a.description && <p className="text-sm" style={{ color: "var(--text-muted)" }}>{a.description}</p>}
                 </div>
                 <form action={`/api/heroes/actions/${a.id}/verify`} method="POST" className="shrink-0">
                   <button type="submit" className="btn btn-ghost btn-sm" style={{ color: "#166534", borderColor: "#bbf7d0" }}>
@@ -180,6 +168,7 @@ export default async function HeroesPage() {
     );
   }
 
+  // ── Fallback ──────────────────────────────────────────────────────────────
   return (
     <div>
       <h1 className="t-title mb-4" style={{ color: "var(--text-primary)" }}>Heroes</h1>
