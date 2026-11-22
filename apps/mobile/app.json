@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "LIFEBridge",
+    "slug": "lifebridge",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "lifebridge",
+    "platforms": ["android"],
+    "android": {
+      "package": "com.lifebridge.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

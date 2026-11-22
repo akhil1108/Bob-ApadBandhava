@@ -1,0 +1,200 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  PATIENT
+  DOCTOR
+  HOSPITAL
+  AMBULANCE
+  VOLUNTEER
+  ADMIN
+}
+
+enum IncidentStatus {
+  REPORTED
+  ACKNOWLEDGED
+  DISPATCHED
+  ARRIVED
+  COMPLETED
+  CANCELLED
+}
+
+enum ConsentStatus {
+  PENDING
+  APPROVED
+  REVOKED
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  role          Role
+  phone         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  patientProfile    PatientProfile?
+  doctorProfile     DoctorProfile?
+  hospitalProfile   HospitalProfile?
+  ambulanceProfile  AmbulanceProfile?
+  volunteerProfile  VolunteerProfile?
+  reportedIncidents Incident[]       @relation("Reporter")
+}
+
+// ─── Health Module ───────────────────────────────────────────────────────────
+
+model PatientProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  dob         DateTime?
+  bloodGroup  String?
+  allergies   String?
+  createdAt   DateTime @default(now())
+
+  consultations Consultation[]
+  consents      Consent[]
+}
+
+model DoctorProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  specialisation String?
+  licenceNumber  String?
+  createdAt      DateTime @default(now())
+
+  consultations  Consultation[]
+}
+
+model Consultation {
+  id              String   @id @default(cuid())
+  patientId       String
+  patient         PatientProfile @relation(fields: [patientId], references: [id])
+  doctorId        String
+  doctor          DoctorProfile  @relation(fields: [doctorId], references: [id])
+  notes           String?
+  prescription    String?
+  aiSummary       String?
+  consultedAt     DateTime @default(now())
+
+  documents       Document[]
+}
+
+model Document {
+  id             String       @id @default(cuid())
+  consultationId String
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  fileName       String
+  fileUrl        String
+  uploadedAt     DateTime     @default(now())
+}
+
+model Consent {
+  id          String        @id @default(cuid())
+  patientId   String
+  patient     PatientProfile @relation(fields: [patientId], references: [id])
+  requestedBy String        // userId of requester
+  purpose     String
+  status      ConsentStatus @default(PENDING)
+  expiresAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// ─── Rescue Module ───────────────────────────────────────────────────────────
+
+model HospitalProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  address   String?
+  latitude  Float?
+  longitude Float?
+  capacity  Int?
+  createdAt DateTime @default(now())
+
+  incidents IncidentResponse[] @relation("HospitalResponses")
+}
+
+model AmbulanceProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  vehicleNo    String?
+  latitude     Float?
+  longitude    Float?
+  createdAt    DateTime @default(now())
+
+  incidents    IncidentResponse[] @relation("AmbulanceResponses")
+}
+
+model Incident {
+  id          String         @id @default(cuid())
+  reporterId  String
+  reporter    User           @relation("Reporter", fields: [reporterId], references: [id])
+  description String
+  latitude    Float
+  longitude   Float
+  status      IncidentStatus @default(REPORTED)
+  aiExtracted Json?          // structured fields extracted by IBM AI
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  responses   IncidentResponse[]
+  heroActions HeroAction[]
+}
+
+model IncidentResponse {
+  id           String          @id @default(cuid())
+  incidentId   String
+  incident     Incident        @relation(fields: [incidentId], references: [id])
+  hospitalId   String?
+  hospital     HospitalProfile? @relation("HospitalResponses", fields: [hospitalId], references: [id])
+  ambulanceId  String?
+  ambulance    AmbulanceProfile? @relation("AmbulanceResponses", fields: [ambulanceId], references: [id])
+  acknowledged Boolean         @default(false)
+  respondedAt  DateTime?
+  createdAt    DateTime        @default(now())
+}
+
+// ─── Heroes Module ───────────────────────────────────────────────────────────
+
+model VolunteerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  certified   Boolean  @default(false)
+  points      Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  heroActions HeroAction[]
+}
+
+model HeroAction {
+  id          String           @id @default(cuid())
+  incidentId  String
+  incident    Incident         @relation(fields: [incidentId], references: [id])
+  volunteerId String
+  volunteer   VolunteerProfile @relation(fields: [volunteerId], references: [id])
+  description String?
+  verified    Boolean          @default(false)
+  pointsAwarded Int            @default(0)
+  createdAt   DateTime         @default(now())
+}

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "jsx": "react-native",
+    "paths": {
+      "@/*": ["./*"],
+      "@lifebridge/shared": ["../../packages/shared/src/index.ts"]
+    }
+  },
+  "extends": "expo/tsconfig.base"
+}
